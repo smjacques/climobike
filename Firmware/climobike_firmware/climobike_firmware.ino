@@ -10,6 +10,7 @@
 #include <SoftwareSerial.h>
 #include <Adafruit_Sensor.h>
 #include <virtuabotixRTC.h>
+#include <Wire.h>
 #include <TinyGPS.h>
 #include <SPI.h>
 #include <SD.h>
@@ -19,8 +20,12 @@
 
 //Humidity and Temperature - DHT22
 #define DHTTYPE DHT22
-#define dhtPin 2
+#define dhtPin 10
 DHT dht(dhtPin, DHTTYPE);
+
+float Umidade = 0;           //umidade relativa (%)
+float TempAr = 0;            //temperatura do ar (degrees F)
+float IndexCalor = 0; //indice de calor (degrees F)
 
 /*Dust Sensor (Shinyei PPD42NS)
  pin 1 (grey)  -> Arduino GND
@@ -29,8 +34,8 @@ DHT dht(dhtPin, DHTTYPE);
  pin 4 (white) -> Pin ~6 (P2 signal out (small particulates, 1-2 µm)
  pin 5 (red)   -> unused!
 */
-int valP1 = 3;
-int valP2 = 6;
+int valP1 = 7;
+int valP2 = 8;
 
 float voMeasured1 = 0;
 float voMeasured2 = 0;
@@ -51,7 +56,7 @@ unsigned long lowpulseoccupancyP2 = 0;
 
 
 // Carbon Monoxide (MQ-7)
-#define voltage_regulator_digital_out_pin 8 
+#define voltage_regulator_digital_out_pin 9
 #define MQ7_analog_in_pin 0
 
 #define MQ7_heater_5v_time_millis 60000
@@ -63,7 +68,7 @@ unsigned long switchTimeMillis;
 boolean heaterInHighPhase;
 
 //Defining RTC
-virtuabotixRTC RTC_data(10, 9, 8); //pin order(clock, data, rst)
+virtuabotixRTC RTC_data(2, 5, 6); //pin order(clock, data, rst)
 
 //GPS Module
 TinyGPS gps;
@@ -93,8 +98,8 @@ void setup()
   //Serial Monitor Data
   Serial.print("Testing TinyGPS library v. "); Serial.println(TinyGPS::library_version());
   Serial.println();
-  Serial.println("Sats HDOP Latitude  Longitude  Fix  Date       Time     Date Alt    Course Speed Card  Distance Course Card  Chars Sentences Checksum  Gas Level  Large Dust(3-10 µm) Small Dust(1-2 µm)  ");
-  Serial.println("          (deg)     (deg)      Age                      Age  (m)    --- from GPS ----  ---- to London  ----  RX    RX        Fail");
+  Serial.println("Sats HDOP Latitude  Longitude  Fix  Date       Time     Date Alt    Course Speed Card  Chars Sentences Checksum  Gas Level  Large Dust(3-10 µm) Small Dust(1-2 µm)  ");
+  Serial.println("          (deg)     (deg)      Age                      Age  (m)    --- from GPS ----  RX    RX        Fail");
   Serial.println("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------");
   
   //SD card (log) data
@@ -111,6 +116,7 @@ void loop()
 /*========================================================================================/
                                             RTC
 /=======================================================================================*/
+RTC_data.updateTime();
 
 
 /*=========================================================================================/
@@ -170,17 +176,17 @@ IndexCalor = dht.computeHeatIndex(TempAr,Umidade); //indice  calculado a partir 
   print_int(gps.satellites(), TinyGPS::GPS_INVALID_SATELLITES, 5);
   print_int(gps.hdop(), TinyGPS::GPS_INVALID_HDOP, 5);
   gps.f_get_position(&flat, &flon, &age);
-  print_float(flat, TinyGPS::GPS_INVALID_F_ANGLE, 10, 6);
-  print_float(flon, TinyGPS::GPS_INVALID_F_ANGLE, 11, 6);
+  
+  print_float(flat, TinyGPS::GPS_INVALID_F_ANGLE, 9, 5);
+  print_float(flon, TinyGPS::GPS_INVALID_F_ANGLE, 10, 5);
   print_int(age, TinyGPS::GPS_INVALID_AGE, 5);
+
   print_date(gps);
-  print_float(gps.f_altitude(), TinyGPS::GPS_INVALID_F_ALTITUDE, 7, 2);
+
+  print_float(gps.f_altitude(), TinyGPS::GPS_INVALID_F_ALTITUDE, 8, 2);
   print_float(gps.f_course(), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
   print_float(gps.f_speed_kmph(), TinyGPS::GPS_INVALID_F_SPEED, 6, 2);
   print_str(gps.f_course() == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(gps.f_course()), 6);
-  print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0xFFFFFFFF : (unsigned long)TinyGPS::distance_between(flat, flon, LONDON_LAT, LONDON_LON) / 1000, 0xFFFFFFFF, 9);
-  print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? TinyGPS::GPS_INVALID_F_ANGLE : TinyGPS::course_to(flat, flon, LONDON_LAT, LONDON_LON), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
-  print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, LONDON_LAT, LONDON_LON)), 6);
 
   gps.stats(&chars, &sentences, &failed);
   print_int(chars, 0xFFFFFFFF, 6);
@@ -189,68 +195,76 @@ IndexCalor = dht.computeHeatIndex(TempAr,Umidade); //indice  calculado a partir 
   Serial.println();
   
   smartdelay(1000);
-  
 
-now = rtc.now();
   
   // log time
-  logfile.print(now.unixtime()); // segundos desde 2000
-  logfile.print(",");
-  logfile.print(now.year(), DEC);
+  logfile.print(RTC_data.year);
   logfile.print("/");
-  logfile.print(now.month(), DEC);
+  logfile.print(RTC_data.month);
   logfile.print("/");
-  logfile.print(now.day(), DEC);
+  logfile.print(RTC_data.dayofmonth);
   logfile.print(" ");
-  logfile.print(now.hour(), DEC);
+  logfile.print(RTC_data.hours);
   logfile.print(":");
-  logfile.print(now.minute(), DEC);
+  logfile.print(RTC_data.minutes);
   logfile.print(":");
-  logfile.print(now.second(), DEC);
+  logfile.print(RTC_data.seconds);
   logfile.print(",");
  #if ECHO_TO_SERIAL
-  Serial.print(now.unixtime()); // segundos desde 2000
   Serial.print(",");
-  Serial.print(now.year(), DEC);
+  Serial.print(RTC_data.year);
   Serial.print("/");
-  Serial.print(now.month(), DEC);
+  Serial.print(RTC_data.month);
   Serial.print("/");
-  Serial.print(now.day(), DEC);
+  Serial.print(RTC_data.dayofmonth);
   Serial.print(" ");
-  Serial.print(now.hour(), DEC);
+  Serial.print(RTC_data.hours);
   Serial.print(":");
-  Serial.print(now.minute(), DEC);
+  Serial.print(RTC_data.minutes);
   Serial.print(":");
-  Serial.print(now.second(), DEC);
+  Serial.print(RTC_data.seconds);
   Serial.print(",");
 #endif //ECHO_TO_SERIAL
 
   //Log variables
   gps.f_get_position(&flat, &flon, &age);
-  logfile.print(gps.satellites(), TinyGPS::GPS_INVALID_SATELLITES, 5);
+  logfile.print(gps.satellites(), 5);
   logfile.print(",");
-  logfile.print(gps.hdop(), TinyGPS::GPS_INVALID_HDOP, 5);
+  logfile.print(gps.hdop(), 5);
+  logfile.print(",");  
   logfile.print(",");
-  logfile.print(flat, TinyGPS::GPS_INVALID_F_ANGLE, 10, 6);
+  logfile.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
   logfile.print(",");
-  logfile.print(flon, TinyGPS::GPS_INVALID_F_ANGLE, 11, 6);
+  logfile.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
   logfile.print(",");
   logfile.print(IndexCalor);
   logfile.print(",");
-  logfile.print(LuzSol);
-  logfile.print(",");
-#if ECHO_TO_SERIAL
-  Serial.print(TempSolo);
-  Serial.print(",");
   Serial.print(TempAr);
-  Serial.print(",");
-  Serial.print(UmidSolo);
   Serial.print(",");
   Serial.print(Umidade);
   Serial.print(",");
   Serial.print(IndexCalor);
   Serial.print(",");
-  Serial.print(LuzSol);
+#if ECHO_TO_SERIAL
+  logfile.print(gps.satellites(), 5);
+  logfile.print(",");
+  logfile.print(gps.hdop(), 5);
+  logfile.print(",");  
+  logfile.print(",");
+  logfile.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
+  logfile.print(",");
+  logfile.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
+  logfile.print(",");
+  logfile.print(IndexCalor);
+  logfile.print(",");
+  Serial.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
+  Serial.print(",");
+  Serial.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
+  Serial.print(TempAr);
+  Serial.print(",");
+  Serial.print(Umidade);
+  Serial.print(",");
+  Serial.print(IndexCalor);
   Serial.print(",");
 #endif
 
