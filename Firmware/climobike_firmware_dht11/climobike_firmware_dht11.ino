@@ -19,8 +19,11 @@
 // Defining Variables
 
 //Humidity and Temperature - DHT22
-#define DHTTYPE DHT22
-#define dhtPin 10
+#define dhtPin A1 // pino que estamos conectado
+#define DHTTYPE DHT11 // DHT 11
+
+//#define DHTTYPE DHT22
+//#define dhtPin 10
 DHT dht(dhtPin, DHTTYPE);
 
 float Umidade = 0;           //umidade relativa (%)
@@ -28,11 +31,11 @@ float TempAr = 0;            //temperatura do ar (degrees F)
 float IndexCalor = 0; //indice de calor (degrees F)
 
 /*Dust Sensor (Shinyei PPD42NS)
- pin 1 (grey)  -> Arduino GND
- pin 3 (blue) -> Arduino 5V
- pin 2 (green) -> Pin ~3 (P1 signal out (large particulates, 3-10 µm)
- pin 4 (white) -> Pin ~6 (P2 signal out (small particulates, 1-2 µm)
- pin 5 (red)   -> unused!
+ pin 1 -> Arduino GND
+ pin 3 -> Arduino 5V
+ pin 2 -> Pin ~7 (P1 signal out (large particulates, 3-10 µm)
+ pin 4 -> Pin ~8 (P2 signal out (small particulates, 1-2 µm)
+ pin 5 -> unused!
 */
 int valP1 = 7;
 int valP2 = 8;
@@ -56,16 +59,9 @@ unsigned long lowpulseoccupancyP2 = 0;
 
 
 // Carbon Monoxide (MQ-7)
-#define voltage_regulator_digital_out_pin 9
+//#define voltage_regulator_digital_out_pin 9 (not used)
 #define MQ7_analog_in_pin 0
-
-#define MQ7_heater_5v_time_millis 60000
-#define MQ7_heater_1_4_V_time_millis 90000
-#define gas_level_reading_period_millis 1000
-
-unsigned long startMillis;
-unsigned long switchTimeMillis;
-boolean heaterInHighPhase;
+int CO_value;
 
 //Defining RTC
 virtuabotixRTC RTC_data(2, 5, 6); //pin order(clock, data, rst)
@@ -80,7 +76,12 @@ static void print_int(unsigned long val, unsigned long invalid, int len);
 static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
 
-//SD card
+/*SD card
+MOSI D11
+MISO D12
+SCK  D13
+ss chipselect D9
+*/
 File logfile;
 
 void setup()
@@ -88,12 +89,37 @@ void setup()
   Serial.begin(9600);
   gpsSerial.begin(9600);
   
-  pinMode(voltage_regulator_digital_out_pin, OUTPUT);
+  pinMode(MQ7_analog_in_pin, INPUT);
   starttime = millis();
-  turnHeaterHigh();
   pinMode(valP1,INPUT);
   pinMode(valP1,INPUT);
   RTC_data.setDS1302Time(00, 00, 22, 4, 19, 8, 2017);
+  
+  //teste se o SD esta presente e inicia
+  if (!SD.begin(9)) {
+    Serial.println("SD com defeito ou ausente");        
+  }
+  
+  Serial.println("SD iniciado");
+  
+  // criar novo arquivo
+  char filename[] = "LOGGER00.CSV";
+  for (uint8_t i = 0; i < 100; i++) {
+    filename[6] = i/10 + '0';
+    filename[7] = i%10 + '0';
+    if (! SD.exists(filename)) {
+      // apenas abre um novo arquivo se ele nao existe
+      logfile = SD.open(filename, FILE_WRITE); 
+      break;  // abandonar o loop!
+    }
+  }
+  
+  if (! logfile) {
+    Serial.print("impossvel criar arquivo");
+  }
+  
+  Serial.print("Logging to: ");
+Serial.println(filename);
   
   //Serial Monitor Data
   Serial.print("Testing TinyGPS library v. "); Serial.println(TinyGPS::library_version());
@@ -188,48 +214,12 @@ static void print_str(const char *str, int len)
   smartdelay(0);
 }
 
-/*
-=================================== MQ-7 Functions =================================
-*/
-
-void turnHeaterHigh() {
-  // 5v phase
-  digitalWrite(voltage_regulator_digital_out_pin, LOW);
-  heaterInHighPhase = true;
-  switchTimeMillis = millis() + MQ7_heater_5v_time_millis;
-}
-
-void turnHeaterLow() {
-  // 1.4v phase
-  digitalWrite(voltage_regulator_digital_out_pin, HIGH);
-  heaterInHighPhase = false;
-  switchTimeMillis = millis() + MQ7_heater_1_4_V_time_millis;
-}
-
-void readGasLevel() {
-  unsigned int gasLevel = analogRead(MQ7_analog_in_pin);
-  unsigned int time = (millis() - startMillis) / 1000;
-
-  Serial.print(time);
-  Serial.print(",");
-  Serial.println(gasLevel);
-}
-
-
 void loop()
 {
 /*========================================================================================/
                                             RTC
 /=======================================================================================*/
 RTC_data.updateTime();
-
-
-/*=========================================================================================/
-                                             SD
-/=========================================================================================*/
-
-
-
 
 
 /*=======================================================================================/
@@ -240,26 +230,6 @@ RTC_data.updateTime();
   unsigned short sentences = 0, failed = 0;
   static const double LONDON_LAT = 51.508131, LONDON_LON = -0.128002;
  
-/*=====================================================================================/
-                              MQ-7 Sensor
-/====================================================================================*/
-  
-   if (heaterInHighPhase) {
-    // 5v phase of cycle. see if need to switch low yet
-    if (millis() > switchTimeMillis) {
-      turnHeaterLow();
-    }
-  }
-  else {
-    // 1.4v phase of cycle. see if need to switch high yet
-    if (millis() > switchTimeMillis) {
-      turnHeaterHigh();
-    }
-  }
-
-  readGasLevel();
-  delay(gas_level_reading_period_millis); //Here I've to change delay to "gps data"
-
 /*==================================================================================/
                                        DHT22
 /===================================================================================*/
@@ -272,6 +242,12 @@ Umidade = dht.readHumidity();
   
 IndexCalor = dht.computeHeatIndex(TempAr,Umidade); //indice  calculado a partir da umidade e temp do ar.
 
+/*
+ ==================================================================================/
+                                       MQ-7
+/===================================================================================
+*/
+CO_value= analogRead(MQ7_analog_in_pin);//reads the analaog value from the CO sensor's AOUT pin
 
 /*==================================================================================/
                                        Data Output
@@ -350,7 +326,7 @@ IndexCalor = dht.computeHeatIndex(TempAr,Umidade); //indice  calculado a partir 
   logfile.print(",");
   logfile.print(IndexCalor);
   logfile.print(",");
-  logfile.println(gasLevel);
+  logfile.println(CO_value);//prints the CO value
   
 #if ECHO_TO_SERIAL
   Serial.print(gps.satellites(), 5);
@@ -373,7 +349,7 @@ IndexCalor = dht.computeHeatIndex(TempAr,Umidade); //indice  calculado a partir 
   Serial.print(",");
   Serial.print(IndexCalor);
   Serial.print(",");
-  Serial.println(gasLevel);
+  Serial.println(CO_value);//prints the CO value
   
 #endif
 
