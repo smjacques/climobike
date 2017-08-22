@@ -79,10 +79,12 @@ static void print_str(const char *str, int len);
 /*SD card
 MOSI D11
 MISO D12
-SCK  D13
-ss chipselect D9
+CLK  D13
+CS   D10
 */
+#define chipSelect 10
 File logfile;
+
 
 void setup()
 {
@@ -95,8 +97,8 @@ void setup()
   pinMode(valP1,INPUT);
   RTC_data.setDS1302Time(00, 00, 22, 4, 19, 8, 2017);
   
-  //teste se o SD esta presente e inicia
-  if (!SD.begin(9)) {
+//teste se o SD esta presente e inicia
+  if (!SD.begin(chipSelect)) {
     Serial.println("SD com defeito ou ausente");        
   }
   
@@ -115,7 +117,7 @@ void setup()
   }
   
   if (! logfile) {
-    Serial.print("impossvel criar arquivo");
+    Serial.println("impossvel criar arquivo");
   }
   
   Serial.print("Logging to: ");
