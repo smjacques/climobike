@@ -1,6 +1,6 @@
-# Materiais para a Prototipagem
+#Materiais para a Prototipagem
 
-Eletrônica
+##Eletrônica
 Arduino pro mini ATmega328
 Sensor temp e umidade (DHT22)
 Sensor CO (MQ-7)
@@ -12,7 +12,7 @@ Switch
 Power bank
 Fios 2,5mm (1,5 metros)
 
-Mecânica
+##Mecânica
 O'rings (54mm x 3,00mm)
 Tubo acrílico 57mm x 3,00mm
 Filamento PLA para impressão 3D
