@@ -1,0 +1,22 @@
+Informação sobre os sensores de monitoramento utilizados no climobike.
+
+Sensor de poeira (dust sensor)
+
+Código utilizado no firmware:
+Para as medições, foram considerados dois intervalos distintos de tamanhos medidos pelo climobike.
+P1: particulado grande (3-10 µm)
+P2: particulado pequeno (1-2 µm)
+
+alP1 e valP2 são os valores brutos gerados e servirão como base para o cálculo da densidade, razão
+e concentração de particulados.
+
+
+DHT22
+No caso do sensor de temperatura e umidade usado nesse protótipo (DHT22), foi considerado
+a extração do pequeno abrigo metereológico que o protege. Como ele ficará dentro de um sistema
+protegido, foi considerado que seria melhor reduzir essa barreira.
+Os dados no sistema são gerados em Celsius....
+
+MQ7
+O sensor MQ7 foi instalado na placa de forma que ficasse distante o suficiente para não
+interferir nas medições do DHT22.
