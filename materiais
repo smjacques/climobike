@@ -1,13 +1,18 @@
-# Materiais para a Prototipagem
+#Materiais para a Prototipagem
 
-Protoboard
-GPS Shield
-Placa Arduino Uno
-Sensor temp e umidade (SHT21)
+##Eletrônica
+Arduino pro mini ATmega328
+Sensor temp e umidade (DHT22)
 Sensor CO (MQ-7)
-Sensor UV (UVM-30a)
 Sensor de Particulado (GP2Y1010AU0F)
 Resistores (10k ohms/ 470 ohms)
+GPS Ublox Neo6mv2
+Módulo cartão SD
+Switch
+Power bank
 Fios 2,5mm (1,5 metros)
-Parafusos M3 3mm X 20mm
-Material de soldagem
+
+##Mecânica
+O'rings (54mm x 3,00mm)
+Tubo acrílico 57mm x 3,00mm
+Filamento PLA para impressão 3D
