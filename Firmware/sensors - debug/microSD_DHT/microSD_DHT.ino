@@ -38,7 +38,7 @@ void loop()
   
 Umidade = dht.readHumidity();
   delay(20);  
-TempAr = dht.readTemperature(true);
+TempAr = dht.readTemperature();// if in farenheit use (true)
   delay(20);  
 IndexCalor = dht.computeHeatIndex(TempAr,Umidade);
 
