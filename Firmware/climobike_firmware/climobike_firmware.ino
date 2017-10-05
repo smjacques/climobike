@@ -139,12 +139,15 @@ void getgps(TinyGPS &gps)
     Serial.print(" ");
     Serial.print(gps.f_speed_kmph());
     Serial.println("km/h");     
-    Serial.print("Air Temperature");
+    Serial.print("Air Temperature ");
     Serial.print(TempAr);
-     Serial.print("Air Humidity");
-     Serial.print(Umidade);
-     Serial.print("Heat Index");
-     Serial.print(IndexCalor);
+    Serial.print(" ");
+    Serial.print("Air Humidity ");
+    Serial.print(Umidade);
+    Serial.print(" ");
+    Serial.print("Heat Index");
+    Serial.print(IndexCalor);
+    Serial.print(" ");
     delay(5000); // record a measurement about every 10 seconds
   
   // if the file is ready, write to it
@@ -294,7 +297,7 @@ float ratio = 0;
     concentration2 = 1.1*pow(ratio2,3)-3.8*pow(ratio2,2)+520*ratio2+0.62;
     temp2 = voMeasured2 * (5.0 / 1024.0);
 
-/* Eq. linear obtida em http://www.howmuchsnow.com/arduino/airquality/
+/* Eq. linear obtida em (http://www.howmuchsnow.com/arduino/airquality/)
 (Chris Nafis 2012)
 
   dustDensity2 = (0.17 * temp2 - 0.1)* (1000/60);

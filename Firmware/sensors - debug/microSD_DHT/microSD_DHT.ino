@@ -37,9 +37,9 @@ void loop()
 {
   
 Umidade = dht.readHumidity();
-  delay(20);  
+  delay(2000);  
 TempAr = dht.readTemperature();// if in farenheit use (true)
-  delay(20);  
+  delay(2000);  
 IndexCalor = dht.computeHeatIndex(TempAr,Umidade);
 
 // open the file.
@@ -48,6 +48,13 @@ File dataFile = SD.open("temp.txt", FILE_WRITE);
 // if the file is available, write to it:
 if (dataFile)
 {
+  Serial.println("Umidade do Ar = ");
+Serial.println(Umidade);
+Serial.println("%  ");
+Serial.println("Temperatura = ");
+Serial.println(TempAr);
+Serial.println("C  ");
+
 dataFile.println("Umidade do Ar = ");
 dataFile.println(Umidade);
 dataFile.println("%  ");
