@@ -4,8 +4,8 @@
  specification: http://www.sca-shinyei.com/pdf/PPD42NS.pdf
  pin 1 (grey)  -> Arduino GND
  pin 3 (blue) -> Arduino 5V
- pin 2 (green) -> Pin ~3 (P1 signal out (large particulates, 3-10 µm)
- pin 4 (white) -> Pin ~6 (P2 signal out (small particulates, 1-2 µm)
+ pin 2 (green) -> Pin ~7 (P1 signal out (large particulates, 3-10 µm)
+ pin 4 (white) -> Pin ~8 (P2 signal out (small particulates, 1-2 µm)
  pin 5 (red)   -> unused!
 
 Based mainly on: https://github.com/opendata-stuttgart/sensors-software/blob/master/arduino/ppd42ns-serial/ppd42ns-serial.ino

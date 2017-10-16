@@ -143,10 +143,7 @@ void loop(){
       Serial.print(concLarge);
       Serial.print(", ");
       Serial.println(concSmall);
-      
-      durationP1 = 0;
-      durationP2 = 0;
-      starttime = millis();
+      delay(2000);
     }
     
 }
